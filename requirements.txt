@@ -50,3 +50,5 @@ structlog==23.2.0
 
 # Optional: For data validation and parsing
 validators==0.22.0
+
+groq==0.4.1
