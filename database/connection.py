@@ -50,10 +50,8 @@ class DatabaseConnection:
             # Get collection names from environment
             users_collection = os.getenv("USERS_COLLECTION", "users")
             chat_sessions_collection = os.getenv("CHAT_SESSIONS_COLLECTION", "chat_sessions")
-            breed_detections_collection = os.getenv("BREED_DETECTIONS_COLLECTION", "breed_detections")
-            health_detections_collection = os.getenv("HEALTH_DETECTIONS_COLLECTION", "health_detections")
-            user_contexts_collection = os.getenv("USER_CONTEXTS_COLLECTION", "user_contexts")
-            dog_profiles_collection = os.getenv("DOG_PROFILES_COLLECTION", "dog_profiles")
+            chat_messages_collection = os.getenv("CHAT_MESSAGES_COLLECTION", "chat_messages")
+            yolo_detections_collection = os.getenv("YOLO_DETECTIONS_COLLECTION", "yolo_detections")
 
             # Users collection indexes
             self._database[users_collection].create_index("email", unique=True)
@@ -65,23 +63,15 @@ class DatabaseConnection:
             self._database[chat_sessions_collection].create_index("session_id", unique=True)
             self._database[chat_sessions_collection].create_index("created_at")
             
-            # Breed detections indexes
-            self._database[breed_detections_collection].create_index("user_id")
-            self._database[breed_detections_collection].create_index("detection_id", unique=True)
-            self._database[breed_detections_collection].create_index("created_at")
+            # Chat messages indexes
+            self._database[chat_messages_collection].create_index("session_id")
+            self._database[chat_messages_collection].create_index("user_id")
+            self._database[chat_messages_collection].create_index("timestamp")
             
-            # Health detections indexes
-            self._database[health_detections_collection].create_index("user_id")
-            self._database[health_detections_collection].create_index("detection_id", unique=True)
-            self._database[health_detections_collection].create_index("created_at")
-            
-            # User contexts indexes
-            self._database[user_contexts_collection].create_index("user_id", unique=True)
-            self._database[user_contexts_collection].create_index("last_updated")
-            
-            # Dog profiles indexes
-            self._database[dog_profiles_collection].create_index("user_id")
-            self._database[dog_profiles_collection].create_index("dog_id", unique=True)
+            # YOLO detections indexes
+            self._database[yolo_detections_collection].create_index("session_id")
+            self._database[yolo_detections_collection].create_index("user_id")
+            self._database[yolo_detections_collection].create_index("model_type")
             
             print("✅ Database indexes created successfully for all collections")
         except Exception as e:
@@ -104,23 +94,13 @@ class DatabaseConnection:
         return self.database[collection_name]
 
     @property
-    def breed_detections_collection(self):
-        collection_name = os.getenv("BREED_DETECTIONS_COLLECTION", "breed_detections")
+    def chat_messages_collection(self):
+        collection_name = os.getenv("CHAT_MESSAGES_COLLECTION", "chat_messages")
         return self.database[collection_name]
 
     @property
-    def health_detections_collection(self):
-        collection_name = os.getenv("HEALTH_DETECTIONS_COLLECTION", "health_detections")
-        return self.database[collection_name]
-
-    @property
-    def user_contexts_collection(self):
-        collection_name = os.getenv("USER_CONTEXTS_COLLECTION", "user_contexts")
-        return self.database[collection_name]
-
-    @property
-    def dog_profiles_collection(self):
-        collection_name = os.getenv("DOG_PROFILES_COLLECTION", "dog_profiles")
+    def yolo_detections_collection(self):
+        collection_name = os.getenv("YOLO_DETECTIONS_COLLECTION", "yolo_detections")
         return self.database[collection_name]
 
     @property

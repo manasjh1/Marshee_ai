@@ -7,10 +7,8 @@ from fastapi import HTTPException, status
 from modals.user import UserCreate, UserResponse, Token, TokenData
 from repositories.user_repository import UserRepository
 import warnings
-warnings.filterwarnings("ignore",
-                        category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-from passlib.context import CryptContext
 class AuthService:
     def __init__(self):
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

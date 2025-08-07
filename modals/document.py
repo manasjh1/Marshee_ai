@@ -12,20 +12,6 @@ class NamespaceType(str, Enum):
     KNOWLEDGE = "dog-health-knowledge"
     PRODUCTS = "marshee-products"
 
-class ProcessDocumentsRequest(BaseModel):
-    document_type: DocumentType
-    target_namespace: NamespaceType  # New field for namespace selection
-    source_folder: Optional[str] = None  # Optional custom folder path
-    force_reindex: bool = False
-    include_subfolders: bool = False
-
-class BulkProcessRequest(BaseModel):
-    folder_path: str
-    target_namespace: NamespaceType  # Choose where to send the files
-    document_type: DocumentType = DocumentType.KNOWLEDGE  # Default type
-    force_reindex: bool = False
-    file_pattern: str = "*.txt"  # Pattern to match files
-
 class DocumentChunk(BaseModel):
     chunk_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     content: str
@@ -43,6 +29,18 @@ class DocumentCreate(BaseModel):
     namespace: str
     original_namespace: str  # Track original vs selected namespace
     metadata: Optional[Dict[str, Any]] = {}
+
+class DocumentResponse(BaseModel):
+    document_id: str
+    filename: str
+    document_type: str
+    namespace: str
+    original_namespace: str
+    content_length: int
+    chunk_count: Optional[int] = None
+    metadata: Dict[str, Any]
+    created_at: datetime
+    indexed_at: Optional[datetime] = None
 
 class EmbeddingRequest(BaseModel):
     text: str
