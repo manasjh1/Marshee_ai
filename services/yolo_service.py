@@ -29,8 +29,8 @@ class YOLOService:
         
         # Load your trained models
         self._load_models()
-        
-        logger.info("✅ YOLOv11 Service initialized")
+
+        logger.info("YOLOv11 Service initialized")
 
     def _load_models(self):
         """Load your trained YOLOv11 models"""
@@ -38,21 +38,21 @@ class YOLOService:
             # Load breed detection model
             if os.path.exists(self.breed_model_path):
                 self.breed_model = YOLO(self.breed_model_path)
-                logger.info(f"✅ Loaded breed detection model: {self.breed_model_path}")
-                logger.info(f"📋 Breed model classes: {list(self.breed_model.names.values())}")
+                logger.info(f"Loaded breed detection model: {self.breed_model_path}")
+                logger.info(f"Breed model classes: {list(self.breed_model.names.values())}")
             else:
-                logger.error(f"❌ Breed model not found: {self.breed_model_path}")
+                logger.error(f"Breed model not found: {self.breed_model_path}")
             
             # Load disease detection model
             if os.path.exists(self.disease_model_path):
                 self.disease_model = YOLO(self.disease_model_path)
-                logger.info(f"✅ Loaded disease detection model: {self.disease_model_path}")
-                logger.info(f"📋 Disease model classes: {list(self.disease_model.names.values())}")
+                logger.info(f"Loaded disease detection model: {self.disease_model_path}")
+                logger.info(f"Disease model classes: {list(self.disease_model.names.values())}")
             else:
-                logger.error(f"❌ Disease model not found: {self.disease_model_path}")
-                
+                logger.error(f"Disease model not found: {self.disease_model_path}")
+
         except Exception as e:
-            logger.error(f"❌ Error loading YOLOv11 models: {e}")
+            logger.error(f"Error loading YOLOv11 models: {e}")
 
     def detect_breed(self, request: YOLORequest) -> YOLODetectionResult:
         """
@@ -117,7 +117,7 @@ class YOLOService:
                 )
                 
         except Exception as e:
-            logger.error(f"❌ Breed detection error: {e}")
+            logger.error(f"Breed detection error: {e}")
             processing_time = time.time() - start_time
             
             return YOLODetectionResult(
@@ -196,7 +196,7 @@ class YOLOService:
                 )
                 
         except Exception as e:
-            logger.error(f"❌ Disease detection error: {e}")
+            logger.error(f"Disease detection error: {e}")
             processing_time = time.time() - start_time
             
             return YOLODetectionResult(
@@ -235,7 +235,7 @@ class YOLOService:
             return temp_path  # Return path for YOLOv11
             
         except Exception as e:
-            logger.error(f"❌ Error decoding image: {e}")
+            logger.error(f"Error decoding image: {e}")
             raise
 
     def _format_breed_result(self, breed_name: str, confidence: float) -> str:
@@ -402,6 +402,6 @@ class YOLOService:
             for file in temp_files:
                 if os.path.exists(file):
                     os.remove(file)
-                    logger.debug(f"🧹 Cleaned up temp file: {file}")
+                    logger.debug(f"Cleaned up temp file: {file}")
         except Exception as e:
-            logger.warning(f"⚠️ Error cleaning temp files: {e}")
+            logger.warning(f"Error cleaning temp files: {e}")

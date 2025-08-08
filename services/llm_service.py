@@ -37,25 +37,25 @@ class LLMService:
         self.embedding_service = GeminiEmbeddingService()
         self.vector_db = PineconeVectorDB()
         
-        logger.info("✅ LLM Service initialized with Groq + YOLO + RAG")
+        logger.info("LLM Service initialized with Groq + YOLO + RAG")
 
     def _load_yolo_models(self):
         """Load YOLO models"""
         try:
             if os.path.exists(self.breed_model_path):
                 self.breed_model = YOLO(self.breed_model_path)
-                logger.info(f"✅ Breed model loaded: {self.breed_model_path}")
+                logger.info(f"Breed model loaded: {self.breed_model_path}")
             else:
-                logger.warning(f"⚠️ Breed model not found: {self.breed_model_path}")
+                logger.warning(f"Breed model not found: {self.breed_model_path}")
             
             if os.path.exists(self.disease_model_path):
                 self.disease_model = YOLO(self.disease_model_path)
-                logger.info(f"✅ Disease model loaded: {self.disease_model_path}")
+                logger.info(f"Disease model loaded: {self.disease_model_path}")
             else:
-                logger.warning(f"⚠️ Disease model not found: {self.disease_model_path}")
+                logger.warning(f"Disease model not found: {self.disease_model_path}")
                 
         except Exception as e:
-            logger.error(f"❌ Error loading YOLO models: {e}")
+            logger.error(f"Error loading YOLO models: {e}")
 
     def _decode_image(self, image_data: str) -> np.ndarray:
         """Decode base64 image"""
@@ -71,7 +71,7 @@ class LLMService:
             
             return np.array(pil_image)
         except Exception as e:
-            logger.error(f"❌ Error decoding image: {e}")
+            logger.error(f"Error decoding image: {e}")
             raise ValueError("Invalid image data")
 
     def detect_breed(self, image_data: str, session_id: str, user_id: str) -> YOLODetectionResult:
@@ -119,7 +119,7 @@ class LLMService:
             )
             
         except Exception as e:
-            logger.error(f"❌ Breed detection error: {e}")
+            logger.error(f"Breed detection error: {e}")
             processing_time = time.time() - start_time
             
             return YOLODetectionResult(
@@ -176,7 +176,7 @@ class LLMService:
             )
             
         except Exception as e:
-            logger.error(f"❌ Disease detection error: {e}")
+            logger.error(f"Disease detection error: {e}")
             processing_time = time.time() - start_time
             
             return YOLODetectionResult(
@@ -215,7 +215,7 @@ class LLMService:
             return knowledge_text.strip()
             
         except Exception as e:
-            logger.error(f"❌ RAG search error: {e}")
+            logger.error(f"RAG search error: {e}")
             return ""
 
     def generate_response(self, prompt: str, max_tokens: int = 300) -> str:
@@ -229,7 +229,7 @@ class LLMService:
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
-            logger.error(f"❌ Error generating response: {e}")
+            logger.error(f"Error generating response: {e}")
             return "I apologize, but I'm having trouble generating a response right now. Please try again."
 
     # Specific response generators

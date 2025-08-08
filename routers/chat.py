@@ -81,7 +81,7 @@ async def chat_message(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Chat error: {e}")
+        logger.error(f"Chat error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Chat system error. Please try again."
@@ -108,7 +108,7 @@ async def get_session_info(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Session info error: {e}")
+        logger.error(f"Session info error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Could not retrieve session information"
@@ -132,7 +132,7 @@ async def get_user_sessions(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Get sessions error: {e}")
+        logger.error(f"Get sessions error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Could not retrieve sessions"
@@ -162,7 +162,7 @@ async def end_session(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ End session error: {e}")
+        logger.error(f"End session error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Could not end session"

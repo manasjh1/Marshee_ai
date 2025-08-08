@@ -7,7 +7,6 @@ from modals.user import UserCreate, UserResponse
 
 class UserRepository:
     def __init__(self):
-        # Use the property method to get the correct collection
         self.users_collection = db_connection.users_collection
 
     def create_user(self, user_data: UserCreate, password_hash: str) -> str:
@@ -29,7 +28,7 @@ class UserRepository:
             
             result = self.users_collection.insert_one(user_doc)
             if result.inserted_id:
-                print(f"✅ User created successfully in collection '{self.users_collection.name}': {user_data.email}")
+                print(f"User created successfully in collection '{self.users_collection.name}': {user_data.email}")
                 return user_id
             else:
                 raise Exception("Failed to insert user")
@@ -37,7 +36,7 @@ class UserRepository:
         except DuplicateKeyError:
             raise ValueError("Email already registered")
         except Exception as e:
-            print(f"❌ Error creating user: {e}")
+            print(f"Error creating user: {e}")
             raise
 
     def get_user_by_email(self, email: str) -> Optional[Dict]:
@@ -45,7 +44,7 @@ class UserRepository:
         try:
             return self.users_collection.find_one({"email": email.lower()})
         except Exception as e:
-            print(f"❌ Error retrieving user by email: {e}")
+            print(f"Error retrieving user by email: {e}")
             return None
 
     def get_user_by_id(self, user_id: str) -> Optional[Dict]:
@@ -53,7 +52,7 @@ class UserRepository:
         try:
             return self.users_collection.find_one({"user_id": user_id})
         except Exception as e:
-            print(f"❌ Error retrieving user by ID: {e}")
+            print(f"Error retrieving user by ID: {e}")
             return None
 
     def update_last_active(self, user_id: str):
@@ -64,7 +63,7 @@ class UserRepository:
                 {"$set": {"last_active": datetime.utcnow()}}
             )
         except Exception as e:
-            print(f"❌ Error updating last active: {e}")
+            print(f"Error updating last active: {e}")
 
     def check_email_exists(self, email: str) -> bool:
         """Check if email already exists"""
@@ -72,7 +71,7 @@ class UserRepository:
             result = self.users_collection.find_one({"email": email.lower()})
             return result is not None
         except Exception as e:
-            print(f"❌ Error checking email existence: {e}")
+            print(f"Error checking email existence: {e}")
             return False
 
     def check_phone_exists(self, phone_number: str) -> bool:
@@ -81,7 +80,7 @@ class UserRepository:
             result = self.users_collection.find_one({"phone_number": phone_number})
             return result is not None
         except Exception as e:
-            print(f"❌ Error checking phone existence: {e}")
+            print(f"Error checking phone existence: {e}")
             return False
 
     def increment_login_attempts(self, email: str):
@@ -92,7 +91,7 @@ class UserRepository:
                 {"$inc": {"login_attempts": 1}}
             )
         except Exception as e:
-            print(f"❌ Error incrementing login attempts: {e}")
+            print(f"Error incrementing login attempts: {e}")
 
     def reset_login_attempts(self, email: str):
         """Reset failed login attempts"""
@@ -102,7 +101,7 @@ class UserRepository:
                 {"$set": {"login_attempts": 0, "account_locked_until": None}}
             )
         except Exception as e:
-            print(f"❌ Error resetting login attempts: {e}")
+            print(f"Error resetting login attempts: {e}")
 
     def get_user_stats(self) -> Dict:
         """Get user statistics"""
@@ -117,7 +116,7 @@ class UserRepository:
                 "inactive_users": inactive_users
             }
         except Exception as e:
-            print(f"❌ Error getting user stats: {e}")
+            print(f"Error getting user stats: {e}")
             return {"total_users": 0, "active_users": 0, "inactive_users": 0}
 
     def deactivate_user(self, user_id: str) -> bool:
@@ -129,7 +128,7 @@ class UserRepository:
             )
             return result.modified_count > 0
         except Exception as e:
-            print(f"❌ Error deactivating user: {e}")
+            print(f"Error deactivating user: {e}")
             return False
 
     def activate_user(self, user_id: str) -> bool:
@@ -141,5 +140,5 @@ class UserRepository:
             )
             return result.modified_count > 0
         except Exception as e:
-            print(f"❌ Error activating user: {e}")
+            print(f"Error activating user: {e}")
             return False

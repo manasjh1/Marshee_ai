@@ -30,52 +30,45 @@ class DatabaseConnection:
             self._client = MongoClient(mongo_uri)
             self._database = self._client[db_name]
             
-            # Test connection
             self._client.admin.command('ping')
-            print(f"✅ Successfully connected to MongoDB Atlas: {db_name}")
+            print(f"Successfully connected to MongoDB Atlas: {db_name}")
             
-            # Create indexes
             self._create_indexes()
             
         except ConnectionFailure as e:
-            print(f"❌ Failed to connect to MongoDB Atlas: {e}")
+            print(f"Failed to connect to MongoDB Atlas: {e}")
             raise
         except Exception as e:
-            print(f"❌ Database connection error: {e}")
+            print(f"Database connection error: {e}")
             raise
 
     def _create_indexes(self):
         """Create database indexes for optimal performance"""
         try:
-            # Get collection names from environment
             users_collection = os.getenv("USERS_COLLECTION", "users")
             chat_sessions_collection = os.getenv("CHAT_SESSIONS_COLLECTION", "chat_sessions")
             chat_messages_collection = os.getenv("CHAT_MESSAGES_COLLECTION", "chat_messages")
             yolo_detections_collection = os.getenv("YOLO_DETECTIONS_COLLECTION", "yolo_detections")
 
-            # Users collection indexes
             self._database[users_collection].create_index("email", unique=True)
             self._database[users_collection].create_index("user_id", unique=True)
             self._database[users_collection].create_index("phone_number")
             
-            # Chat sessions indexes
             self._database[chat_sessions_collection].create_index("user_id")
             self._database[chat_sessions_collection].create_index("session_id", unique=True)
             self._database[chat_sessions_collection].create_index("created_at")
             
-            # Chat messages indexes
             self._database[chat_messages_collection].create_index("session_id")
             self._database[chat_messages_collection].create_index("user_id")
             self._database[chat_messages_collection].create_index("timestamp")
             
-            # YOLO detections indexes
             self._database[yolo_detections_collection].create_index("session_id")
             self._database[yolo_detections_collection].create_index("user_id")
             self._database[yolo_detections_collection].create_index("model_type")
-            
-            print("✅ Database indexes created successfully for all collections")
+
+            print("Database indexes created successfully for all collections")
         except Exception as e:
-            print(f"⚠️ Warning: Could not create indexes: {e}")
+            print(f"Warning: Could not create indexes: {e}")
 
     @property
     def database(self):
@@ -114,7 +107,6 @@ class DatabaseConnection:
             self._client.close()
             self._client = None
             self._database = None
-            print("📊 Database connection closed")
+            print("Database connection closed")
 
-# Global database instance
 db_connection = DatabaseConnection()

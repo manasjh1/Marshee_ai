@@ -29,7 +29,7 @@ class PineconeVectorDB:
             existing_indexes = [index.name for index in self.pc.list_indexes()]
             
             if self.index_name not in existing_indexes:
-                logger.info(f"🔄 Creating new Pinecone index: {self.index_name}")
+                logger.info(f"Creating new Pinecone index: {self.index_name}")
                 self.pc.create_index(
                     name=self.index_name,
                     dimension=self.dimension,
@@ -39,14 +39,14 @@ class PineconeVectorDB:
                         region=self.environment
                     )
                 )
-                logger.info(f"✅ Created Pinecone index: {self.index_name}")
+                logger.info(f"Created Pinecone index: {self.index_name}")
             
             # Connect to index
             self.index = self.pc.Index(self.index_name)
-            logger.info(f"✅ Connected to Pinecone index: {self.index_name}")
-            
+            logger.info(f"Connected to Pinecone index: {self.index_name}")
+
         except Exception as e:
-            logger.error(f"❌ Error setting up Pinecone index: {e}")
+            logger.error(f"Error setting up Pinecone index: {e}")
             raise
 
     def upsert_chunks(self, chunks: List[DocumentChunk], namespace: str = None) -> bool:
@@ -87,13 +87,13 @@ class PineconeVectorDB:
             for i in range(0, len(vectors), batch_size):
                 batch = vectors[i:i + batch_size]
                 self.index.upsert(vectors=batch, namespace=target_namespace)
-                logger.info(f"📈 Upserted batch {i//batch_size + 1}: {len(batch)} vectors to namespace '{target_namespace}'")
-            
-            logger.info(f"✅ Successfully upserted {len(vectors)} vectors to namespace '{target_namespace}'")
+                logger.info(f"Upserted batch {i//batch_size + 1}: {len(batch)} vectors to namespace '{target_namespace}'")
+
+            logger.info(f"Successfully upserted {len(vectors)} vectors to namespace '{target_namespace}'")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Error upserting to Pinecone: {e}")
+            logger.error(f"Error upserting to Pinecone: {e}")
             return False
 
     def similarity_search(
@@ -136,7 +136,7 @@ class PineconeVectorDB:
             return formatted_results
             
         except Exception as e:
-            logger.error(f"❌ Error searching Pinecone: {e}")
+            logger.error(f"Error searching Pinecone: {e}")
             return []
 
     def delete_namespace(self, namespace: str) -> bool:
@@ -146,11 +146,11 @@ class PineconeVectorDB:
                 return False
             
             self.index.delete(delete_all=True, namespace=namespace)
-            logger.info(f"🗑️ Deleted all vectors from namespace '{namespace}'")
+            logger.info(f"Deleted all vectors from namespace '{namespace}'")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Error deleting namespace '{namespace}': {e}")
+            logger.error(f"Error deleting namespace '{namespace}': {e}")
             return False
 
     def get_namespace_stats(self) -> Dict[str, Any]:
@@ -177,7 +177,7 @@ class PineconeVectorDB:
             }
             
         except Exception as e:
-            logger.error(f"❌ Error getting namespace stats: {e}")
+            logger.error(f"Error getting namespace stats: {e}")
             return {"error": str(e)}
 
     def get_index_stats(self) -> Dict[str, Any]:
@@ -192,7 +192,7 @@ class PineconeVectorDB:
                 return list(stats["namespaces"].keys())
             return []
         except Exception as e:
-            logger.error(f"❌ Error listing namespaces: {e}")
+            logger.error(f"Error listing namespaces: {e}")
             return []
 
     def delete_all_vectors(self, namespace: str = None) -> bool:
@@ -205,9 +205,9 @@ class PineconeVectorDB:
                 return self.delete_namespace(namespace)
             else:
                 self.index.delete(delete_all=True)
-                logger.info("🗑️ Deleted all vectors from Pinecone index")
+                logger.info("Deleted all vectors from Pinecone index")
                 return True
             
         except Exception as e:
-            logger.error(f"❌ Error deleting vectors: {e}")
+            logger.error(f"Error deleting vectors: {e}")
             return False

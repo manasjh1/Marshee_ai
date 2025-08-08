@@ -15,7 +15,7 @@ class ChatService:
         self.chat_repo = ChatRepository()
         self.llm_service = LLMService()
         
-        logger.info("✅ Chat Service initialized")
+        logger.info("Chat Service initialized")
 
     async def process_chat_message(self, request: ChatRequest, user_id: str) -> ChatResponse:
         """Main method to process all chat interactions"""
@@ -45,7 +45,7 @@ class ChatService:
                 return await self._handle_fallback(session)
                 
         except Exception as e:
-            logger.error(f"❌ Chat processing error: {e}")
+            logger.error(f"Chat processing error: {e}")
             return ChatResponse(
                 session_id=request.session_id or "error",
                 message_id="error",
@@ -418,7 +418,7 @@ class ChatService:
                 ]
             }
         except Exception as e:
-            logger.error(f"❌ Error getting session info: {e}")
+            logger.error(f"Error getting session info: {e}")
             return None
 
     async def get_user_sessions(self, user_id: str) -> List[Dict]:
@@ -437,7 +437,7 @@ class ChatService:
                 for session in sessions
             ]
         except Exception as e:
-            logger.error(f"❌ Error getting user sessions: {e}")
+            logger.error(f"Error getting user sessions: {e}")
             return []
 
     async def end_session(self, session_id: str, user_id: str) -> bool:
@@ -449,5 +449,5 @@ class ChatService:
             
             return await self.chat_repo.end_session(session_id)
         except Exception as e:
-            logger.error(f"❌ Error ending session: {e}")
+            logger.error(f"Error ending session: {e}")
             return False

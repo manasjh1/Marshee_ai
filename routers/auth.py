@@ -23,7 +23,7 @@ async def register(user: UserCreate):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Registration endpoint error: {e}")
+        print(f"Registration endpoint error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Registration failed"
@@ -42,7 +42,7 @@ async def login(user: UserLogin):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Login endpoint error: {e}")
+        print(f"Login endpoint error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Login failed"
@@ -61,7 +61,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Get user endpoint error: {e}")
+        print(f"Get user endpoint error: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
@@ -84,7 +84,7 @@ async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Logout endpoint error: {e}")
+        print(f"Logout endpoint error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Logout failed"

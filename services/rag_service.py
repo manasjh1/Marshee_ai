@@ -25,8 +25,8 @@ class RAGService:
         
         # MongoDB collections for user context
         self.chat_sessions_collection = db_connection.chat_sessions_collection
-        
-        logger.info("✅ RAG Service initialized")
+
+        logger.info("RAG Service initialized")
 
     async def get_personalized_response(self, request: RAGRequest) -> RAGResponse:
         """
@@ -55,7 +55,7 @@ class RAGService:
             )
             
         except Exception as e:
-            logger.error(f"❌ RAG service error: {e}")
+            logger.error(f"RAG service error: {e}")
             return RAGResponse(
                 response="I'm sorry, I'm having trouble accessing my knowledge base right now. Please try again in a moment.",
                 sources=[],
@@ -97,7 +97,7 @@ class RAGService:
             return context_docs
             
         except Exception as e:
-            logger.error(f"❌ Error getting context: {e}")
+            logger.error(f"Error getting context: {e}")
             return []
 
     def _determine_search_namespace(self, request: RAGRequest) -> str:
@@ -134,7 +134,7 @@ class RAGService:
             return user_context
             
         except Exception as e:
-            logger.error(f"❌ Error getting user context: {e}")
+            logger.error(f"Error getting user context: {e}")
             return {}
 
     def _create_personalized_prompt(
@@ -217,7 +217,7 @@ Please provide a helpful, personalized response based on the above information. 
             return response.text
             
         except Exception as e:
-            logger.error(f"❌ LLM generation error: {e}")
+            logger.error(f"LLM generation error: {e}")
             return "I apologize, but I'm having trouble generating a response right now. Please try rephrasing your question or try again in a moment."
 
     async def get_breed_specific_advice(self, breed: str, topic: str) -> str:

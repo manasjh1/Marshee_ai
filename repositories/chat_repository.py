@@ -34,13 +34,13 @@ class ChatRepository:
             
             result = self.chat_sessions_collection.insert_one(session_doc)
             if result.inserted_id:
-                print(f"✅ Created chat session: {session.session_id}")
+                print(f"Created chat session: {session.session_id}")
                 return session.session_id
             else:
                 raise Exception("Failed to create session")
                 
         except Exception as e:
-            print(f"❌ Error creating session: {e}")
+            print(f"Error creating session: {e}")
             raise
 
     async def get_session(self, session_id: str) -> Optional[ChatSession]:
@@ -80,7 +80,7 @@ class ChatRepository:
             return None
             
         except Exception as e:
-            print(f"❌ Error getting session: {e}")
+            print(f"Error getting session: {e}")
             return None
 
     async def update_session(self, session: ChatSession) -> bool:
@@ -109,7 +109,7 @@ class ChatRepository:
             return result.modified_count > 0
             
         except Exception as e:
-            print(f"❌ Error updating session: {e}")
+            print(f"Error updating session: {e}")
             return False
 
     async def save_message(self, message: ChatMessage) -> str:
@@ -136,7 +136,7 @@ class ChatRepository:
                 raise Exception("Failed to save message")
                 
         except Exception as e:
-            print(f"❌ Error saving message: {e}")
+            print(f"Error saving message: {e}")
             raise
 
     async def get_session_messages(self, session_id: str, limit: int = 50) -> List[ChatMessage]:
@@ -178,7 +178,7 @@ class ChatRepository:
             return messages
             
         except Exception as e:
-            print(f"❌ Error getting messages: {e}")
+            print(f" Error getting messages: {e}")
             return []
 
     async def save_detection_result(self, detection_data: Dict) -> str:
@@ -204,7 +204,7 @@ class ChatRepository:
                 raise Exception("Failed to save detection")
                 
         except Exception as e:
-            print(f"❌ Error saving detection: {e}")
+            print(f" Error saving detection: {e}")
             raise
 
     async def get_user_sessions(self, user_id: str, active_only: bool = True) -> List[ChatSession]:
@@ -251,7 +251,7 @@ class ChatRepository:
             return sessions
             
         except Exception as e:
-            print(f"❌ Error getting user sessions: {e}")
+            print(f" Error getting user sessions: {e}")
             return []
 
     async def end_session(self, session_id: str) -> bool:
@@ -271,7 +271,7 @@ class ChatRepository:
             return result.modified_count > 0
             
         except Exception as e:
-            print(f"❌ Error ending session: {e}")
+            print(f"Error ending session: {e}")
             return False
 
     async def get_session_stats(self) -> Dict:
@@ -281,7 +281,6 @@ class ChatRepository:
             active_sessions = self.chat_sessions_collection.count_documents({"is_active": True})
             completed_sessions = self.chat_sessions_collection.count_documents({"is_active": False})
             
-            # Get stage distribution
             stage_pipeline = [
                 {"$group": {"_id": "$current_stage", "count": {"$sum": 1}}}
             ]
@@ -295,5 +294,5 @@ class ChatRepository:
             }
             
         except Exception as e:
-            print(f"❌ Error getting session stats: {e}")
+            print(f"Error getting session stats: {e}")
             return {"error": str(e)}

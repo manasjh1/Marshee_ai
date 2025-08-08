@@ -18,17 +18,17 @@ load_dotenv()
 async def lifespan(app: FastAPI):
     """Application lifespan management"""
     # Startup
-    print("🚀 Starting Marshee Dog Health System...")
-    print("📊 Database connection initialized")
-    print("🔐 Authentication service ready")
-    print("🤖 YOLO models loading...")
-    print("🧠 RAG system initializing...")
-    print("✅ Chat system ready!")
+    print("Starting Marshee Dog Health System...")
+    print("Database connection initialized")
+    print("Authentication service ready")
+    print("YOLO models loading...")
+    print("RAG system initializing...")
+    print("Chat system ready!")
     yield
     # Shutdown
-    print("📊 Closing database connections...")
+    print("Closing database connections...")
     db_connection.close_connection()
-    print("👋 Marshee system shutdown complete")
+    print("Marshee system shutdown complete")
 
 # Create FastAPI app
 app = FastAPI(
@@ -56,7 +56,7 @@ app.include_router(chat.router, prefix="/api/v1")
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    print(f"❌ Global exception: {exc}")
+    print(f"Global exception: {exc}")
     return JSONResponse(
         status_code=500,
         content={
@@ -74,10 +74,10 @@ async def root():
         "version": "2.0.0",
         "status": "online",
         "features": [
-            "🐕 Breed Detection with YOLOv11",
-            "🩺 Health Condition Detection",
-            "💬 Personalized Care Guidance",
-            "🧠 RAG-powered Knowledge Base"
+            "Breed Detection with YOLOv11",
+            "Health Condition Detection",
+            "Personalized Care Guidance",
+            "RAG-powered Knowledge Base"
         ],
         "endpoints": {
             "auth": "/api/v1/auth",
@@ -96,7 +96,7 @@ async def health_check():
         db_connection.client.admin.command('ping')
         db_status = "healthy"
     except Exception as e:
-        print(f"❌ Database health check failed: {e}")
+        print(f"Database health check failed: {e}")
         db_status = "unhealthy"
     
     return {
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     host = os.getenv("API_HOST", "0.0.0.0")
     port = int(os.getenv("API_PORT", "8000"))
     
-    print(f"🌐 Starting Marshee system on {host}:{port}")
+    print(f"Starting Marshee system on {host}:{port}")
     uvicorn.run(
         "main:app",
         host=host,

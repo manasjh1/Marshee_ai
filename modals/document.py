@@ -18,8 +18,8 @@ class DocumentChunk(BaseModel):
     metadata: Dict[str, Any]
     embedding: Optional[List[float]] = None
     document_type: DocumentType
-    namespace: str  # Actual namespace where it will be stored
-    original_namespace: str  # Original intended namespace
+    namespace: str
+    original_namespace: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class DocumentCreate(BaseModel):
@@ -27,7 +27,7 @@ class DocumentCreate(BaseModel):
     content: str
     document_type: DocumentType
     namespace: str
-    original_namespace: str  # Track original vs selected namespace
+    original_namespace: str
     metadata: Optional[Dict[str, Any]] = {}
 
 class DocumentResponse(BaseModel):

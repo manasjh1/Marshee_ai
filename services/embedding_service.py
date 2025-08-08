@@ -19,7 +19,7 @@ class GeminiEmbeddingService:
         # Configure Gemini
         genai.configure(api_key=self.api_key)
         
-        logger.info(f"✅ Gemini Embedding Service initialized with model: {self.model_name}")
+        logger.info(f"Gemini Embedding Service initialized with model: {self.model_name}")
 
     def create_single_embedding(self, text: str) -> Optional[List[float]]:
         """Create embedding for a single text"""
@@ -52,7 +52,7 @@ class GeminiEmbeddingService:
                 return None
                 
         except Exception as e:
-            logger.error(f"❌ Error creating embedding: {e}")
+            logger.error(f"Error creating embedding: {e}")
             return None
 
     def create_batch_embeddings(self, texts: List[str], batch_size: int = 5) -> List[Optional[List[float]]]:
@@ -60,20 +60,20 @@ class GeminiEmbeddingService:
         embeddings = []
         total_texts = len(texts)
         
-        print(f"🔄 Creating embeddings for {total_texts} texts in batches of {batch_size}")
+        print(f"Creating embeddings for {total_texts} texts in batches of {batch_size}")
         
         for i in range(0, total_texts, batch_size):
             batch = texts[i:i + batch_size]
             batch_embeddings = []
             
-            print(f"📦 Processing batch {i//batch_size + 1}/{(total_texts + batch_size - 1)//batch_size}")
+            print(f"Processing batch {i//batch_size + 1}/{(total_texts + batch_size - 1)//batch_size}")
             
             for j, text in enumerate(batch):
                 current_index = i + j + 1
                 
                 # Show progress every 10 items or for the last item in batch
                 if current_index % 10 == 0 or j == len(batch) - 1:
-                    print(f"   📊 Processing {current_index}/{total_texts}")
+                    print(f"Processing {current_index}/{total_texts}")
                 
                 embedding = self.create_single_embedding(text)
                 batch_embeddings.append(embedding)
@@ -84,35 +84,35 @@ class GeminiEmbeddingService:
             
             embeddings.extend(batch_embeddings)
             successful_in_batch = sum(1 for e in batch_embeddings if e is not None)
-            print(f"   ✅ Batch complete: {successful_in_batch}/{len(batch)} successful")
+            print(f"Batch complete: {successful_in_batch}/{len(batch)} successful")
             
             # Shorter delay between batches
             if i + batch_size < total_texts:
-                print(f"   ⏳ Waiting 2 seconds before next batch...")
+                print(f"Waiting 2 seconds before next batch...")
                 time.sleep(2)  # Reduced from longer delays
         
         successful_total = sum(1 for e in embeddings if e is not None)
         success_rate = (successful_total / total_texts * 100) if total_texts > 0 else 0
-        print(f"🎯 Total successful embeddings: {successful_total}/{total_texts} ({success_rate:.1f}%)")
+        print(f"Total successful embeddings: {successful_total}/{total_texts} ({success_rate:.1f}%)")
         
         return embeddings
 
     def embed_document_chunks(self, chunks: List[DocumentChunk]) -> List[DocumentChunk]:
         """Add embeddings to document chunks with increased limits"""
         total_chunks = len(chunks)
-        print(f"🎯 Creating embeddings for {total_chunks} document chunks")
+        print(f"Creating embeddings for {total_chunks} document chunks")
         
         # Increased limits for better processing
         max_chunks_per_session = 200  # Increased from 50
         
         if total_chunks > max_chunks_per_session:
-            print(f"📊 Large dataset detected ({total_chunks} chunks)")
-            print(f"   Processing first {max_chunks_per_session} chunks in this session")
-            print(f"   Remaining {total_chunks - max_chunks_per_session} chunks can be processed in next run")
+            print(f"Large dataset detected ({total_chunks} chunks)")
+            print(f"Processing first {max_chunks_per_session} chunks in this session")
+            print(f"Remaining {total_chunks - max_chunks_per_session} chunks can be processed in next run")
             chunks_to_process = chunks[:max_chunks_per_session]
         else:
             chunks_to_process = chunks
-            print(f"📊 Processing all {total_chunks} chunks")
+            print(f"Processing all {total_chunks} chunks")
         
         # Extract texts for embedding
         texts = []
@@ -123,7 +123,7 @@ class GeminiEmbeddingService:
                 text = text[:15000] + "..."
             texts.append(text)
         
-        print(f"📝 Prepared {len(texts)} texts for embedding")
+        print(f"Prepared {len(texts)} texts for embedding")
         
         # Create embeddings with optimized batching
         embeddings = self.create_batch_embeddings(texts, batch_size=8)  # Increased batch size
@@ -141,11 +141,11 @@ class GeminiEmbeddingService:
         
         success_rate = len(embedded_chunks) / len(chunks_to_process) * 100 if chunks_to_process else 0
         
-        print(f"\n📊 EMBEDDING RESULTS:")
-        print(f"✅ Successfully embedded: {len(embedded_chunks)}/{len(chunks_to_process)} chunks ({success_rate:.1f}%)")
+        print(f"\nEMBEDDING RESULTS:")
+        print(f"Successfully embedded: {len(embedded_chunks)}/{len(chunks_to_process)} chunks ({success_rate:.1f}%)")
         
         if failed_chunks:
-            print(f"❌ Failed chunks: {len(failed_chunks)}")
+            print(f"Failed chunks: {len(failed_chunks)}")
             if len(failed_chunks) <= 5:
                 print(f"   Failed IDs: {', '.join(failed_chunks)}")
         
@@ -193,7 +193,7 @@ class GeminiEmbeddingService:
             return similarities[:top_k]
             
         except Exception as e:
-            logger.error(f"❌ Error in similarity search: {e}")
+            logger.error(f"Error in similarity search: {e}")
             return []
 
     def validate_embedding_dimension(self, embedding: List[float]) -> bool:

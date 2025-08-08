@@ -6,22 +6,16 @@ import uuid
 
 class ChatStage(str, Enum):
     """Conversation stages following your flow"""
-    STAGE_1_WELCOME = "stage_1_welcome"           # Welcome, ask for dog image
-    STAGE_1_BREED_DETECTION = "stage_1_breed"     # Processing breed detection
-    STAGE_1_COMPLETE = "stage_1_complete"         # Breed detected, show results
-    
-    STAGE_2_OPTIONS = "stage_2_options"           # Show two options: Disease Detection or General Chat
-    
-    # Disease Detection Path
-    STAGE_2A_DISEASE_REQUEST = "stage_2a_disease_request"   # Ask for skin condition image
-    STAGE_2A_DISEASE_PROCESSING = "stage_2a_processing"     # Processing disease detection
-    STAGE_2A_DISEASE_RESULT = "stage_2a_result"             # Show disease results with guidance
-    STAGE_2A_FOLLOWUP = "stage_2a_followup"                 # Follow-up questions about condition
-    
-    # General Chat Path
-    STAGE_2B_GENERAL_CHAT = "stage_2b_general_chat"        # Ongoing personalized conversation
-    
-    SESSION_COMPLETE = "session_complete"                   # Session ended
+    STAGE_1_WELCOME = "stage_1_welcome"           
+    STAGE_1_BREED_DETECTION = "stage_1_breed"     
+    STAGE_1_COMPLETE = "stage_1_complete"         
+    STAGE_2_OPTIONS = "stage_2_options"           
+    STAGE_2A_DISEASE_REQUEST = "stage_2a_disease_request"   
+    STAGE_2A_DISEASE_PROCESSING = "stage_2a_processing"     
+    STAGE_2A_DISEASE_RESULT = "stage_2a_result"             
+    STAGE_2A_FOLLOWUP = "stage_2a_followup"                 
+    STAGE_2B_GENERAL_CHAT = "stage_2b_general_chat"    
+    SESSION_COMPLETE = "session_complete"                   
 
 class MessageType(str, Enum):
     TEXT = "text"
@@ -38,10 +32,10 @@ class ChatOption(BaseModel):
     icon: Optional[str] = None
 
 class YOLODetectionResult(BaseModel):
-    model_type: str  # "breed" or "disease"
+    model_type: str  
     detected_class: str
     confidence: float
-    text_result: str  # Your text response from YOLO
+    text_result: str  
     additional_info: Optional[Dict[str, Any]] = {}
     processing_time: float
     timestamp: datetime = Field(default_factory=datetime.utcnow)
@@ -53,21 +47,17 @@ class ChatSession(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
-    # Stage 1 Results
     breed_detection: Optional[YOLODetectionResult] = None
     dog_breed: Optional[str] = None
     breed_confidence: Optional[float] = None
     
-    # Stage 2A Results (Disease Detection)
     disease_detection: Optional[YOLODetectionResult] = None
     health_condition: Optional[str] = None
     condition_confidence: Optional[float] = None
     
-    # Conversation context for RAG
     conversation_history: List[str] = []
     user_preferences: Dict[str, Any] = {}
     
-    # Session status
     is_active: bool = True
     completed_at: Optional[datetime] = None
 
@@ -78,27 +68,17 @@ class ChatMessage(BaseModel):
     message_type: MessageType
     content: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    
-    # For images
-    image_data: Optional[str] = None  # Base64 encoded
-    
-    # For system messages with options
+    image_data: Optional[str] = None  
     options: Optional[List[ChatOption]] = None
-    
-    # For detection results
     detection_result: Optional[YOLODetectionResult] = None
-    
-    # Message direction
     is_user_message: bool = True
-    
-    # Additional metadata
     metadata: Dict[str, Any] = {}
 
 class ChatRequest(BaseModel):
-    session_id: Optional[str] = None  # None = new session
+    session_id: Optional[str] = None  
     message: Optional[str] = None
-    image_data: Optional[str] = None  # Base64 encoded image
-    selected_option: Optional[str] = None  # For option selection
+    image_data: Optional[str] = None  
+    selected_option: Optional[str] = None  
 
 class ChatResponse(BaseModel):
     session_id: str
@@ -107,29 +87,23 @@ class ChatResponse(BaseModel):
     response_type: MessageType
     content: str
     
-    # For options
     options: Optional[List[ChatOption]] = None
     
-    # For detection results
     detection_result: Optional[YOLODetectionResult] = None
     
-    # Session info
     dog_breed: Optional[str] = None
     health_condition: Optional[str] = None
     
-    # Next expected input
-    next_input_expected: Optional[str] = None  # "text", "image", "option"
+    next_input_expected: Optional[str] = None  
     
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
-# YOLO Service Models
 class YOLORequest(BaseModel):
-    image_data: str  # Base64 encoded
-    model_type: str  # "breed" or "disease"
+    image_data: str  
+    model_type: str  
     session_id: str
     user_id: str
-
-# RAG Service Models  
+  
 class RAGRequest(BaseModel):
     query: str
     session_id: str
@@ -137,7 +111,7 @@ class RAGRequest(BaseModel):
     dog_breed: Optional[str] = None
     health_condition: Optional[str] = None
     conversation_history: List[str] = []
-    context_type: str = "general"  # "breed_info", "health_guidance", "general"
+    context_type: str = "general"
 
 class RAGResponse(BaseModel):
     response: str

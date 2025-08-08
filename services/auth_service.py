@@ -38,7 +38,7 @@ class AuthService:
             encoded_jwt = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
             return encoded_jwt
         except Exception as e:
-            print(f"❌ Error creating access token: {e}")
+            print(f"Error creating access token: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Could not create access token"
@@ -119,7 +119,7 @@ class AuthService:
         except HTTPException:
             raise
         except Exception as e:
-            print(f"❌ Registration error: {e}")
+            print(f"Registration error: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Registration failed"
@@ -180,7 +180,7 @@ class AuthService:
         except HTTPException:
             raise
         except Exception as e:
-            print(f"❌ Authentication error: {e}")
+            print(f"Authentication error: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Authentication failed"
@@ -220,7 +220,7 @@ class AuthService:
         except HTTPException:
             raise
         except Exception as e:
-            print(f"❌ Get current user error: {e}")
+            print(f"Get current user error: {e}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials"
