@@ -1,453 +1,119 @@
-import logging
-from typing import Dict, List, Optional
-from datetime import datetime
+from modals.chat import ApiRequest, ApiResponse, ChatSession, ChatStage
 from repositories.chat_repository import ChatRepository
-from services.llm_service import LLMService
-from modals.chat import (
-    ChatRequest, ChatResponse, ChatSession, ChatMessage, ChatStage, 
-    MessageType, ChatOption, YOLODetectionResult
-)
-
-logger = logging.getLogger(__name__)
+from services.yolo_service import yolo_service
+from services.rag_service import rag_service
+from routers.auth import auth_service
+from modals.user import UserResponse
+from database.connection import db_connection
+import base64
 
 class ChatService:
-    def __init__(self):
-        self.chat_repo = ChatRepository()
-        self.llm_service = LLMService()
-        
-        logger.info("Chat Service initialized")
+    def __init__(self, chat_repo: ChatRepository, yolo_service, rag_service, auth_service):
+        self.chat_repo = chat_repo
+        self.yolo_service = yolo_service
+        self.rag_service = rag_service
+        self.auth_service = auth_service
 
-    async def process_chat_message(self, request: ChatRequest, user_id: str) -> ChatResponse:
-        """Main method to process all chat interactions"""
-        try:
-            # Get or create session
-            if request.session_id:
-                session = await self.chat_repo.get_session(request.session_id)
-                if not session or session.user_id != user_id:
-                    raise ValueError("Invalid session")
-            else:
-                # Create new session - Stage 1 Welcome
-                session = ChatSession(user_id=user_id)
-                await self.chat_repo.create_session(session)
-            
-            # Process based on current stage
-            if session.current_stage == ChatStage.STAGE_1_WELCOME:
-                return await self._handle_welcome(session, request)
-            elif session.current_stage == ChatStage.STAGE_1_BREED_DETECTION:
-                return await self._handle_breed_detection(session, request)
-            elif session.current_stage == ChatStage.STAGE_2_OPTIONS:
-                return await self._handle_options(session, request)
-            elif session.current_stage == ChatStage.STAGE_2A_DISEASE_REQUEST:
-                return await self._handle_disease_request(session, request)
-            elif session.current_stage in [ChatStage.STAGE_2A_DISEASE_RESULT, ChatStage.STAGE_2B_GENERAL_CHAT]:
-                return await self._handle_chat(session, request)
-            else:
-                return await self._handle_fallback(session)
-                
-        except Exception as e:
-            logger.error(f"Chat processing error: {e}")
-            return ChatResponse(
-                session_id=request.session_id or "error",
-                message_id="error",
-                current_stage=ChatStage.STAGE_1_WELCOME,
-                response_type=MessageType.ERROR,
-                content="Something went wrong. Let's start fresh!",
-                next_input_expected="image"
-            )
+    async def _get_or_create_session(self, user_id: str) -> ChatSession:
+        """Finds an active session for a user or creates a new one."""
+        session = await self.chat_repo.get_session_by_user_id(user_id)
+        if not session:
+            session = ChatSession(user_id=user_id)
+            await self.chat_repo.create_session(session)
+        return session
 
-    async def _handle_welcome(self, session: ChatSession, request: ChatRequest) -> ChatResponse:
-        """Stage 1: Welcome and request dog image"""
-        if request.image_data:
-            # Process breed detection
-            session.current_stage = ChatStage.STAGE_1_BREED_DETECTION
-            await self.chat_repo.update_session(session)
-            return await self._handle_breed_detection(session, request)
+    async def _handle_welcome(self, session: ChatSession, user: UserResponse) -> ApiResponse:
+        """Handles the initial welcome stage."""
+        is_new_user = user.created_at == user.last_active
         
-        # Generate welcome message
-        welcome_message = self.llm_service.generate_welcome_message()
+        if is_new_user:
+            welcome_message = f"Welcome, {user.name}, to Marshee Pet Tech! To get started, please upload a photo of your dog."
+        else:
+            welcome_message = f"Welcome back, {user.name}! Please upload a photo of your dog to continue."
         
-        # Save message
-        message = ChatMessage(
-            session_id=session.session_id,
+        return ApiResponse(
             user_id=session.user_id,
-            message_type=MessageType.TEXT,
-            content=welcome_message,
-            is_user_message=False
-        )
-        await self.chat_repo.save_message(message)
-        
-        return ChatResponse(
-            session_id=session.session_id,
-            message_id=message.message_id,
-            current_stage=session.current_stage,
-            response_type=MessageType.TEXT,
-            content=welcome_message,
-            next_input_expected="image"
+            bot_response=welcome_message,
+            next_input_expected="image",
+            current_stage=session.current_stage
         )
 
-    async def _handle_breed_detection(self, session: ChatSession, request: ChatRequest) -> ChatResponse:
-        """Stage 1: Process breed detection"""
-        if not request.image_data:
-            return ChatResponse(
-                session_id=session.session_id,
-                message_id="error",
-                current_stage=session.current_stage,
-                response_type=MessageType.TEXT,
-                content="Please upload a clear photo of your dog!",
-                next_input_expected="image"
-            )
-        
-        # Save user image
-        user_message = ChatMessage(
-            session_id=session.session_id,
-            user_id=session.user_id,
-            message_type=MessageType.IMAGE,
-            content="Uploaded dog photo",
-            image_data=request.image_data,
-            is_user_message=True
-        )
-        await self.chat_repo.save_message(user_message)
-        
-        # Run breed detection
-        detection_result = self.llm_service.detect_breed(
-            request.image_data, session.session_id, session.user_id
-        )
-        
-        # Update session
-        session.breed_detection = detection_result
-        session.dog_breed = detection_result.detected_class
-        session.breed_confidence = detection_result.confidence
-        session.current_stage = ChatStage.STAGE_2_OPTIONS
-        await self.chat_repo.update_session(session)
-        
-        # Generate responses
-        breed_response = self.llm_service.generate_breed_response(
-            detection_result.detected_class, detection_result.confidence
-        )
-        options_message = self.llm_service.generate_options_message(detection_result.detected_class)
-        full_response = f"{breed_response}\n\n{options_message}"
-        
-        # Create options
-        options = [
-            ChatOption(
-                id="disease_detection",
-                text="🩺 Disease Detection",
-                description="Upload a photo to check for skin conditions",
-                icon="🩺"
-            ),
-            ChatOption(
-                id="general_chat",
-                text="💬 General Chat",
-                description="Ask questions about your dog's care",
-                icon="💬"
-            )
-        ]
-        
-        # Save response
-        response_message = ChatMessage(
-            session_id=session.session_id,
-            user_id=session.user_id,
-            message_type=MessageType.OPTIONS,
-            content=full_response,
-            options=options,
-            detection_result=detection_result,
-            is_user_message=False
-        )
-        await self.chat_repo.save_message(response_message)
-        
-        return ChatResponse(
-            session_id=session.session_id,
-            message_id=response_message.message_id,
-            current_stage=session.current_stage,
-            response_type=MessageType.OPTIONS,
-            content=full_response,
-            options=options,
-            detection_result=detection_result,
-            dog_breed=session.dog_breed,
-            next_input_expected="option"
-        )
-
-    async def _handle_options(self, session: ChatSession, request: ChatRequest) -> ChatResponse:
-        """Stage 2: Handle option selection"""
-        if not request.selected_option:
-            return ChatResponse(
-                session_id=session.session_id,
-                message_id="error",
-                current_stage=session.current_stage,
-                response_type=MessageType.TEXT,
-                content="Please select Disease Detection or General Chat.",
-                next_input_expected="option"
-            )
-        
-        if request.selected_option == "disease_detection":
-            session.current_stage = ChatStage.STAGE_2A_DISEASE_REQUEST
-            await self.chat_repo.update_session(session)
-            
-            disease_request = self.llm_service.generate_disease_request(session.dog_breed)
-            
-            message = ChatMessage(
-                session_id=session.session_id,
+    async def _handle_breed_detection(self, session: ChatSession, request: ApiRequest) -> ApiResponse:
+        """Handles the breed detection stage."""
+        if not (request.data and request.data.image_base64):
+            return ApiResponse(
                 user_id=session.user_id,
-                message_type=MessageType.TEXT,
-                content=disease_request,
-                is_user_message=False
+                bot_response="Please upload an image to detect the breed.",
+                next_input_expected="image",
+                current_stage=session.current_stage
             )
-            await self.chat_repo.save_message(message)
-            
-            return ChatResponse(
-                session_id=session.session_id,
-                message_id=message.message_id,
-                current_stage=session.current_stage,
-                response_type=MessageType.TEXT,
-                content=disease_request,
-                dog_breed=session.dog_breed,
-                next_input_expected="image"
-            )
+
+        image_data = base64.b64decode(request.data.image_base64)
+        detected_breed = self.yolo_service.detect_breed(image_data)
         
-        elif request.selected_option == "general_chat":
-            session.current_stage = ChatStage.STAGE_2B_GENERAL_CHAT
-            await self.chat_repo.update_session(session)
+        session.current_stage = ChatStage.STAGE_2_HEALTH_CHECK
+        await self.chat_repo.update_session(session)
+        
+        response_text = f"Breed detected: {detected_breed}. Now, let's check your dog's health. You can ask me anything about it."
+        
+        return ApiResponse(
+            user_id=session.user_id,
+            bot_response=response_text,
+            next_input_expected="text",
+            current_stage=session.current_stage
+        )
+
+    async def process_chat_message(self, request: ApiRequest) -> ApiResponse:
+        """Main entry point to process a chat message."""
+        user = self.auth_service.get_user_by_id(request.user_id)
+        if not user:
+            raise ValueError("User not found")
+
+        session = await self._get_or_create_session(request.user_id)
+
+        # If the user sends a message or image, move past the welcome stage.
+        if session.current_stage == ChatStage.STAGE_1_WELCOME:
+            if request.user_message or (request.data and request.data.image_base64):
+                 return await self._handle_breed_detection(session, request)
+            else:
+                # This is the very first interaction, just get the welcome message.
+                return await self._handle_welcome(session, user)
+
+        # Logic for subsequent stages
+        if session.current_stage == ChatStage.STAGE_2_HEALTH_CHECK:
+            if not request.user_message:
+                return ApiResponse(
+                    user_id=session.user_id,
+                    bot_response="Please ask a question about your dog's health.",
+                    next_input_expected="text",
+                    current_stage=session.current_stage
+                )
             
-            chat_welcome = f"Perfect! I'm ready to help with any questions about caring for your {session.dog_breed}. What would you like to know?"
-            
-            message = ChatMessage(
-                session_id=session.session_id,
+            rag_response = self.rag_service.query_knowledge_base(request.user_message)
+            return ApiResponse(
                 user_id=session.user_id,
-                message_type=MessageType.TEXT,
-                content=chat_welcome,
-                is_user_message=False
-            )
-            await self.chat_repo.save_message(message)
-            
-            return ChatResponse(
-                session_id=session.session_id,
-                message_id=message.message_id,
-                current_stage=session.current_stage,
-                response_type=MessageType.TEXT,
-                content=chat_welcome,
-                dog_breed=session.dog_breed,
-                next_input_expected="text"
+                bot_response=rag_response,
+                next_input_expected="text",
+                current_stage=session.current_stage
             )
 
-    async def _handle_disease_request(self, session: ChatSession, request: ChatRequest) -> ChatResponse:
-        """Stage 2A: Process disease detection"""
-        if not request.image_data:
-            return ChatResponse(
-                session_id=session.session_id,
-                message_id="error",
-                current_stage=session.current_stage,
-                response_type=MessageType.TEXT,
-                content="Please upload a photo of the area of concern on your dog.",
-                next_input_expected="image"
-            )
-        
-        # Save user image
-        user_message = ChatMessage(
-            session_id=session.session_id,
+        # Fallback for unimplemented stages
+        return ApiResponse(
             user_id=session.user_id,
-            message_type=MessageType.IMAGE,
-            content="Uploaded health image",
-            image_data=request.image_data,
-            is_user_message=True
-        )
-        await self.chat_repo.save_message(user_message)
-        
-        # Run disease detection
-        detection_result = self.llm_service.detect_disease(
-            request.image_data, session.session_id, session.user_id
-        )
-        
-        # Update session
-        session.disease_detection = detection_result
-        session.health_condition = detection_result.detected_class
-        session.condition_confidence = detection_result.confidence
-        session.current_stage = ChatStage.STAGE_2A_DISEASE_RESULT
-        await self.chat_repo.update_session(session)
-        
-        # Get relevant knowledge
-        knowledge = ""
-        if detection_result.detected_class not in ["Error", "Normal", "Unclear"]:
-            search_query = f"{detection_result.detected_class} {session.dog_breed} treatment"
-            knowledge = self.llm_service.search_knowledge(search_query)
-        
-        # Generate response
-        disease_response = self.llm_service.generate_disease_response(
-            detection_result.detected_class,
-            detection_result.confidence,
-            session.dog_breed,
-            knowledge
-        )
-        
-        # Save response
-        response_message = ChatMessage(
-            session_id=session.session_id,
-            user_id=session.user_id,
-            message_type=MessageType.DETECTION_RESULT,
-            content=disease_response,
-            detection_result=detection_result,
-            is_user_message=False
-        )
-        await self.chat_repo.save_message(response_message)
-        
-        return ChatResponse(
-            session_id=session.session_id,
-            message_id=response_message.message_id,
-            current_stage=session.current_stage,
-            response_type=MessageType.DETECTION_RESULT,
-            content=disease_response,
-            detection_result=detection_result,
-            dog_breed=session.dog_breed,
-            health_condition=session.health_condition,
-            next_input_expected="text"
+            bot_response="This chat stage is not yet implemented.",
+            next_input_expected="text",
+            current_stage=session.current_stage
         )
 
-    async def _handle_chat(self, session: ChatSession, request: ChatRequest) -> ChatResponse:
-        """Handle general chat and follow-up questions"""
-        if not request.message:
-            return ChatResponse(
-                session_id=session.session_id,
-                message_id="error",
-                current_stage=session.current_stage,
-                response_type=MessageType.TEXT,
-                content=f"Please ask me anything about caring for your {session.dog_breed}!",
-                next_input_expected="text"
-            )
-        
-        # Save user message
-        user_message = ChatMessage(
-            session_id=session.session_id,
-            user_id=session.user_id,
-            message_type=MessageType.TEXT,
-            content=request.message,
-            is_user_message=True
-        )
-        await self.chat_repo.save_message(user_message)
-        
-        # Get conversation history
-        messages = await self.chat_repo.get_session_messages(session.session_id)
-        conversation_history = [msg.content for msg in messages[-8:]]
-        
-        # Search for relevant knowledge
-        search_query = f"{request.message} {session.dog_breed}"
-        if session.health_condition:
-            search_query += f" {session.health_condition}"
-        
-        knowledge = self.llm_service.search_knowledge(search_query)
-        
-        # Generate response
-        response_content = self.llm_service.generate_chat_response(
-            request.message, session, conversation_history, knowledge
-        )
-        
-        # Save response
-        response_message = ChatMessage(
-            session_id=session.session_id,
-            user_id=session.user_id,
-            message_type=MessageType.TEXT,
-            content=response_content,
-            is_user_message=False
-        )
-        await self.chat_repo.save_message(response_message)
-        
-        # Update history
-        session.conversation_history.append(f"User: {request.message}")
-        session.conversation_history.append(f"Assistant: {response_content}")
-        await self.chat_repo.update_session(session)
-        
-        return ChatResponse(
-            session_id=session.session_id,
-            message_id=response_message.message_id,
-            current_stage=session.current_stage,
-            response_type=MessageType.TEXT,
-            content=response_content,
-            dog_breed=session.dog_breed,
-            health_condition=session.health_condition,
-            next_input_expected="text"
-        )
+# --- Create Singleton Instance ---
+chat_repo = ChatRepository(
+    sessions_collection=db_connection.get_collection("chat_sessions"),
+    messages_collection=db_connection.get_collection("chat_messages")
+)
 
-    async def _handle_fallback(self, session: ChatSession) -> ChatResponse:
-        """Fallback handler"""
-        session.current_stage = ChatStage.STAGE_1_WELCOME
-        await self.chat_repo.update_session(session)
-        
-        welcome_message = "Let's start fresh! Please upload a photo of your dog."
-        
-        message = ChatMessage(
-            session_id=session.session_id,
-            user_id=session.user_id,
-            message_type=MessageType.TEXT,
-            content=welcome_message,
-            is_user_message=False
-        )
-        await self.chat_repo.save_message(message)
-        
-        return ChatResponse(
-            session_id=session.session_id,
-            message_id=message.message_id,
-            current_stage=session.current_stage,
-            response_type=MessageType.TEXT,
-            content=welcome_message,
-            next_input_expected="image"
-        )
-
-    # Helper methods
-    async def get_session_info(self, session_id: str, user_id: str) -> Optional[Dict]:
-        """Get session info"""
-        try:
-            session = await self.chat_repo.get_session(session_id)
-            if not session or session.user_id != user_id:
-                return None
-            
-            messages = await self.chat_repo.get_session_messages(session_id)
-            
-            return {
-                "session": {
-                    "session_id": session.session_id,
-                    "current_stage": session.current_stage.value,
-                    "dog_breed": session.dog_breed,
-                    "health_condition": session.health_condition,
-                    "is_active": session.is_active
-                },
-                "messages": [
-                    {
-                        "content": msg.content,
-                        "is_user_message": msg.is_user_message,
-                        "timestamp": msg.timestamp
-                    }
-                    for msg in messages
-                ]
-            }
-        except Exception as e:
-            logger.error(f"Error getting session info: {e}")
-            return None
-
-    async def get_user_sessions(self, user_id: str) -> List[Dict]:
-        """Get user sessions"""
-        try:
-            sessions = await self.chat_repo.get_user_sessions(user_id)
-            return [
-                {
-                    "session_id": session.session_id,
-                    "current_stage": session.current_stage.value,
-                    "dog_breed": session.dog_breed,
-                    "health_condition": session.health_condition,
-                    "created_at": session.created_at,
-                    "is_active": session.is_active
-                }
-                for session in sessions
-            ]
-        except Exception as e:
-            logger.error(f"Error getting user sessions: {e}")
-            return []
-
-    async def end_session(self, session_id: str, user_id: str) -> bool:
-        """End a chat session"""
-        try:
-            session = await self.chat_repo.get_session(session_id)
-            if not session or session.user_id != user_id:
-                return False
-            
-            return await self.chat_repo.end_session(session_id)
-        except Exception as e:
-            logger.error(f"Error ending session: {e}")
-            return False
+chat_service = ChatService(
+    chat_repo=chat_repo,
+    yolo_service=yolo_service,
+    rag_service=rag_service,
+    auth_service=auth_service
+)

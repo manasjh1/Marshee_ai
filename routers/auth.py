@@ -1,100 +1,73 @@
-from datetime import datetime
-from fastapi import APIRouter, HTTPException, Depends, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, APIKeyHeader
 from modals.user import UserCreate, UserLogin, Token, UserResponse
 from services.auth_service import AuthService
+from database.connection import db_connection
+from repositories.user_repository import UserRepository
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
-security = HTTPBearer()
-auth_service = AuthService()
+router = APIRouter(
+    prefix="/auth",
+    tags=["Authentication"]
+)
 
-@router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
-async def register(user: UserCreate):
+# --- Define Multiple Security Schemes ---
+
+# 1. Standard OAuth2 Password Flow (for the login form)
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/api/v1/auth/login",
+    description="Standard login with email and password."
+)
+
+# 2. API Key Header (for pasting a token directly)
+api_key_scheme = APIKeyHeader(
+    name="Authorization",
+    description="Paste a Bearer token here for direct authorization.",
+    auto_error=False # Set to False to allow either method
+)
+
+# --- Updated Dependency ---
+
+async def get_current_active_user(
+    password_token: str = Depends(oauth2_scheme),
+    api_key_token: str = Depends(api_key_scheme)
+) -> UserResponse:
     """
-    Register a new user
-    
-    - **email**: Valid email address
-    - **name**: Full name (2-100 characters)
-    - **phone_number**: Phone number (10-15 digits)
-    - **password**: Password (minimum 6 characters)
+    Dependency that validates a user from either a password flow token
+    or a directly provided API key (Bearer token).
     """
-    try:
-        return auth_service.register_user(user)
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Registration endpoint error: {e}")
+    # Prioritize the token from the direct paste (API Key) method
+    token = api_key_token or password_token
+
+    if not token:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Registration failed"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    # The API Key header includes "Bearer ", so we remove it
+    if token.startswith("Bearer "):
+        token = token.split(" ")[1]
+
+    user = auth_service.get_current_user(token)
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return user
+
+# --- Initialize Services ---
+user_repo = UserRepository(db_connection.get_collection("users"))
+auth_service = AuthService(user_repo)
+
+
+# --- Endpoints ---
+
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def register(user: UserCreate):
+    """Register a new user."""
+    return auth_service.create_user(user)
 
 @router.post("/login", response_model=Token)
 async def login(user: UserLogin):
-    """
-    Authenticate user and return access token
-    
-    - **email**: Registered email address
-    - **password**: User password
-    """
-    try:
-        return auth_service.authenticate_user(user.email, user.password)
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Login endpoint error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Login failed"
-        )
+    """Authenticate and get an access token."""
+    return auth_service.authenticate_user(user.email, user.password)
 
-@router.get("/me", response_model=UserResponse)
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """
-    Get current authenticated user information
-    
-    Requires: Bearer token in Authorization header
-    """
-    try:
-        token = credentials.credentials
-        return auth_service.get_current_user(token)
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Get user endpoint error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-@router.post("/logout")
-async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """
-    Logout user (client should delete the token)
-    
-    Note: JWT tokens are stateless, so logout is handled client-side
-    """
-    try:
-        # Verify token is valid
-        token = credentials.credentials
-        auth_service.verify_token(token)
-        
-        return {"message": "Successfully logged out"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Logout endpoint error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Logout failed"
-        )
-
-@router.get("/health")
-async def auth_health_check():
-    """Health check for authentication service"""
-    return {
-        "service": "Authentication",
-        "status": "healthy",
-        "timestamp": str(datetime.utcnow())
-    }
